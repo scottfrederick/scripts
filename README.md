@@ -1,0 +1,1 @@
+This is a collection of scripts that I use, which have been copied from places outside of GitHub. There are mostly copied here so I don't forget where I originally found them. 
