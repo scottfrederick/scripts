@@ -64,8 +64,6 @@
 # [1] http://gradle.org/docs/current/userguide/gradle_wrapper.html
 
 
-SYSTEM_GRADLE=/usr/local/bin/gradle
-
 CWD=$PWD
 until [ $CWD == / ]; do
     GRADLEW=$CWD/gradlew
@@ -75,5 +73,10 @@ until [ $CWD == / ]; do
     CWD=$(dirname $CWD)
 done
 
-echo No Gradle wrapper found, using $SYSTEM_GRADLE
-exec $SYSTEM_GRADLE $@
+if [ -f `brew --prefix gradle`/bin/gradle ]; then
+  GRADLE=`brew --prefix gradle`/bin/gradle
+  echo No Gradle wrapper found, using $GRADLE
+  exec $GRADLE $@
+fi
+
+echo No Gradle found
