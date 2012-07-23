@@ -1,0 +1,1 @@
+This is a slightly modified copy of the `find-gradle` script by Chris Beams. The original can be found here: https://github.com/cbeams/shell-scripts.
