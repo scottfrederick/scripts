@@ -63,6 +63,11 @@
 #
 # [1] http://gradle.org/docs/current/userguide/gradle_wrapper.html
 
+function command_exists () {
+    command -v "$1" >/dev/null 2>&1 ;
+}
+
+DEFAULT_GRADLE=/opt/gradle/current/bin/gradle
 
 CWD=$PWD
 until [ $CWD == / ]; do
@@ -73,10 +78,20 @@ until [ $CWD == / ]; do
     CWD=$(dirname $CWD)
 done
 
-if [ -f `brew --prefix gradle`/bin/gradle ]; then
-  GRADLE=`brew --prefix gradle`/bin/gradle
-  echo No Gradle wrapper found, using $GRADLE
-  exec $GRADLE $@
+OS=`uname`
+if [ "x$OS" == "xDarwin" ]; then
+    if command_exists brew ; then
+        BREW_GRADLE=`brew --prefix gradle`/bin/gradle
+        if [ -f $BREW_GRADLE ]; then
+            echo No Gradle wrapper found, using $BREW_GRADLE
+            exec $BREW_GRADLE $@
+        fi
+    fi
+fi
+
+if [ -f $DEFAULT_GRADLE ]; then
+  echo No Gradle wrapper found, using $DEFAULT_GRADLE
+  exec $DEFAULT_GRADLE $@
 fi
 
 echo No Gradle found
