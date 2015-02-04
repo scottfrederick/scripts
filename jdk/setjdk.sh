@@ -17,7 +17,7 @@ function setjdk {
 function _setjdk_completion() {
     COMPREPLY=()
  
-    local options=$(/usr/libexec/java_home | grep $/w*1./d./d | tr '\n' ' ')
+    local options=$(ls /Library/Java/JavaVirtualMachines/ | grep $/w*1./d./d | tr '\n' ' ')
  
     COMPREPLY=($(compgen -W "${options}" ${cur}))
 }
