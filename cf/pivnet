@@ -1,6 +1,7 @@
 #!/bin/bash
  
 set -e
+
 if [ "$PIVNET_TOKEN" == "" ]; then 
   echo "export PIVNET_TOKEN before running this script"
   exit 1
