@@ -9,6 +9,8 @@
 #     $ cf service-key config-server config-server-key | scs-curl.sh "/encrypt/status"
 #     $ cf service-key config-server config-server-key | scs-curl.sh "/encrypt" -d "some text to encrypt"
 
+set -o xtrace
+
 CREDENTIALS="`cat | sed 1,2d`"
 
 if [[ "$CREDENTIALS" == "" ]]; then

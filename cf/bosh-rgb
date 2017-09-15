@@ -1,0 +1,14 @@
+#!/bin/bash
+
+set -o xtrace
+
+ENV_NAME="$1"
+DIRECTOR_IP="$2"
+DIRECTOR_PWD="$3"
+
+scp ubuntu@pcf.$ENV_NAME.springapps.io:/var/tempest/workspaces/default/root_ca_certificate ~/Downloads/"$ENV_NAME"_root_ca_certificate
+bosh alias-env $ENV_NAME -e $DIRECTOR_IP --ca-cert ~/Downloads/"$ENV_NAME"_root_ca_certificate
+
+export BOSH_ENVIRONMENT=$ENV_NAME
+
+bosh-login $DIRECTOR_PWD
