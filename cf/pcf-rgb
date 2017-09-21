@@ -1,4 +1,2 @@
 ENV=$1
-ENV_PWD=$(rgbpw $ENV)
-
-cf login --skip-ssl-validation -a https://api.${ENV}.springapps.io -u admin -p ${ENV_PWD} -o system -s p-spring-cloud-services
+cf login -a "https://api.$ENV.springapps.io" -u admin -p $(rgbpw "$ENV") --skip-ssl-validation
