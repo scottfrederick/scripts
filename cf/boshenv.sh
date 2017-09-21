@@ -3,6 +3,9 @@
 #
 # Inspired by http://www.starkandwayne.com/blog/target-ops-manager-bosh-director-using-om-and-jq/
 #
+# To use this fuction, source it from your shell (e.g. `$ source ./boshenv.sh`). After sourcing, target
+# an Ops Manager BOSH directory with `$ boshenv https://pcf.example.com adminusername adminpassword`
+#
 
 function boshenv() {
     # set -o xtrace
@@ -30,14 +33,21 @@ function boshenv() {
         # Unset BOSH_* env vars
         while read var; do unset $var; done < <(env | grep BOSH | cut -d'=' -f1)
 
+        # Test om access
+        TEST_COMMAND=$(om -t $OM_TARGET -k -u $OM_ADMIN curl -s -path /api/v0/deployed/products)
+        if [ $? -ne 0 ]; then
+            echo "Error: $TEST_COMMAND"
+            return 1
+        fi
+
         # Get director IP
         BOSH_PRODUCT_GUID=$(om -t $OM_TARGET -k -u $OM_ADMIN curl -s -path /api/v0/deployed/products/ | jq -r -c '.[] | select(.type | contains("p-bosh")) | .guid')
         export BOSH_ENVIRONMENT=$(om -t $OM_TARGET -k -u $OM_ADMIN curl -s -path /api/v0/deployed/products/$BOSH_PRODUCT_GUID/static_ips | jq -r '.[].ips[]')
 
-        # Get Director root cert
+        # Get director root cert
         export BOSH_CA_CERT=$(om -t $OM_TARGET -k -u $OM_ADMIN curl -s -path /api/v0/certificate_authorities | jq -r '.certificate_authorities[].cert_pem')
 
-        # Get Director credentials
+        # Get director credentials
         export BOSH_USERNAME=$(om -t $OM_TARGET -k -u $OM_ADMIN curl -s -path /api/v0/deployed/director/credentials/director_credentials | jq -r '.credential.value.identity')
         export BOSH_PASSWORD=$(om -t $OM_TARGET -k -u $OM_ADMIN curl -s -path /api/v0/deployed/director/credentials/director_credentials | jq -r '.credential.value.password')
 
