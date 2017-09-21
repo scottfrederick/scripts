@@ -1,9 +1,0 @@
-#!/usr/bin/expect
-
-lassign $argv pwd
-
-spawn bosh log-in
-expect "Email ():"
-send "director\r"
-expect "Password ():"
-send "$pwd\r"
