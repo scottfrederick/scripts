@@ -1,0 +1,14 @@
+TS_G_ENV=${1?"Usage: $0 ENV_NAME"}
+
+OM_JSON=$(cat ~/Downloads/envs/${TS_G_ENV}.json | jq -r .ops_manager)
+if [ ! -z "$OM_JSON" ]
+then
+  OM_JSON=$(cat ~/Downloads/envs/${TS_G_ENV}.json | jq -r .opsman)
+  export OM_TARGET=$(echo $OM_JSON | jq -r .address)
+else
+  export OM_TARGET=$(echo $OM_JSON | jq -r .url)
+fi
+
+export OM_USERNAME=$(echo $OM_JSON | jq -r .username)
+export OM_PASSWORD=$(echo $OM_JSON | jq -r .password)
+export OM_SKIP_SSL_VALIDATION=true

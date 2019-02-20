@@ -8,7 +8,7 @@
 #
 
 function boshenv() {
-    # set -o xtrace
+    set -o xtrace
 
     function setenv() {
         if (which om | grep "not found"); then

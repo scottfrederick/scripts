@@ -1,0 +1,2 @@
+kubectl expose service spin-deck --type=LoadBalancer --name=spin-deck-ext --target-port=9000
+watch -n 10 kubectl describe service spin-deck-ext

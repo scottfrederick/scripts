@@ -1,0 +1,4 @@
+export OM_TARGET=https://pcf.scottfrederick.io
+export OM_CLIENT_ID=om
+export OM_CLIENT_SECRET=om
+export OM_SKIP_SSL_VALIDATION=true

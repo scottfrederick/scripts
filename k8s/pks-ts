@@ -1,0 +1,3 @@
+TS_G_ENV=${1?"Usage: $0 ENV_NAME"}
+UAA_ADMIN_PASSWORD=$(cat ~/Downloads/envs/${TS_G_ENV}.json | jq -r .pks_api.uaa_admin_password)
+pks login -a api.pks.${TS_G_ENV}.cf-app.com -u admin -p ${UAA_ADMIN_PASSWORD} -k

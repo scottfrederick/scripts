@@ -1,0 +1,7 @@
+TS_G_ENV=${1?"Usage: $0 ENV_NAME"}
+OM_ADMIN_USERNAME=$(cat ~/Downloads/envs/${TS_G_ENV}.json | jq -r .ops_manager.username)
+OM_ADMIN_PASSWORD=$(cat ~/Downloads/envs/${TS_G_ENV}.json | jq -r .ops_manager.password)
+
+uaac target https://pcf.${TS_G_ENV}.cf-app.com/uaa --skip-ssl-validation
+uaac token owner get opsman ${OM_ADMIN_USERNAME} -p ${OM_ADMIN_PASSWORD}
+uaac client add om --secret om --authorized_grant_types client_credentials --scope opsman.admin --authorities opsman.admin

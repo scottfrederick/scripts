@@ -1,0 +1,2 @@
+DECK_IP=$(kubectl get service spin-deck-ext --output=json | jq -r ".status.loadBalancer.ingress[0].ip")
+open http://$DECK_IP:9000

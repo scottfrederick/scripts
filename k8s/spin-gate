@@ -1,0 +1,2 @@
+export GATE_POD=$(kubectl get pods --namespace default -l "cluster=spin-gate" -o jsonpath="{.items[0].metadata.name}")
+kubectl port-forward --namespace default $GATE_POD 8084

@@ -1,0 +1,3 @@
+uaac target https://api.pks.scottfrederick.io:8443 --ca-cert ~/Downloads/root_ca_certificate
+ADMIN_SECRET=$(om credentials --product-name pivotal-container-service --credential-reference .properties.pks_uaa_management_admin_client --format json | jq -r .secret)
+uaac token client get admin -s $ADMIN_SECRET

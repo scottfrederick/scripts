@@ -1,2 +1,0 @@
-ENV=$1
-cf login -a "https://api.$ENV.springapps.io" -u admin -p $(rgbpw "$ENV") --skip-ssl-validation

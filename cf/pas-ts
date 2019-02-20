@@ -1,0 +1,2 @@
+TS_G_ENV=${1?"Usage: $0 ENV_NAME"}
+cf login --skip-ssl-validation -a https://api.sys.${TS_G_ENV}.cf-app.com -u sfrederick@pivotal.io -o sfrederick-org -s development

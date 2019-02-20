@@ -1,0 +1,2 @@
+source om-ts
+om certificate-authorities --format json | jq -r ".[0].cert_pem" > ~/Downloads/root_ca_certificate
