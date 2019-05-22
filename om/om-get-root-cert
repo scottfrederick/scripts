@@ -1,2 +1,4 @@
+# set -x
+
 source om-ts
-om certificate-authorities --format json | jq -r ".[0].cert_pem" > ~/Downloads/root_ca_certificate
+echo $(om certificate-authorities --format json | jq -r ".[0].cert_pem") > ~/Downloads/envs/${TS_G_ENV}-root-ca-certificate

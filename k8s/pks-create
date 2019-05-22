@@ -1,0 +1,7 @@
+if [ "$#" -lt 2 ]; then
+  echo "Usage: $0 ENV_NAME CLUSTER_NAME
+fi
+
+TS_G_ENV=$1
+CLUSTER_NAME=$2
+pks create-cluster ${CLUSTER_NAME} --external-hostname ${CLUSTER_NAME}.${TS_G_ENV}.cf-app.com --plan small

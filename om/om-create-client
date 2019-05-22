@@ -1,7 +1,13 @@
+# set -x
+
 TS_G_ENV=${1?"Usage: $0 ENV_NAME"}
-OM_ADMIN_USERNAME=$(cat ~/Downloads/envs/${TS_G_ENV}.json | jq -r .ops_manager.username)
-OM_ADMIN_PASSWORD=$(cat ~/Downloads/envs/${TS_G_ENV}.json | jq -r .ops_manager.password)
+OM_ADMIN_USERNAME=$(cat ~/Downloads/envs/${TS_G_ENV}.json | jq -r .opsman.username)
+OM_ADMIN_PASSWORD=$(cat ~/Downloads/envs/${TS_G_ENV}.json | jq -r .opsman.password)
+BOSH_CLIENT=$(cat ~/Downloads/envs/${TS_G_ENV}.json | jq -r .bosh.client)
+BOSH_CLIENT_SECRET=$(cat ~/Downloads/envs/${TS_G_ENV}.json | jq -r .bosh.\"client-secret\")
+UAA_URL=$(cat ~/Downloads/envs/${TS_G_ENV}.json | jq -r .bosh.\"uaa-url\")
 
 uaac target https://pcf.${TS_G_ENV}.cf-app.com/uaa --skip-ssl-validation
+echo "When prompted for 'Client secret:', just press ENTER"
 uaac token owner get opsman ${OM_ADMIN_USERNAME} -p ${OM_ADMIN_PASSWORD}
 uaac client add om --secret om --authorized_grant_types client_credentials --scope opsman.admin --authorities opsman.admin
