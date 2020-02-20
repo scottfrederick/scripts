@@ -1,19 +1,21 @@
+#!/bin/bash
+
 if [ "$#" -lt 3 ]; then
-  echo "Usage: $0 ENV_NAME CLUSTER_NAME CLUSTER_MASTER_VM_NAMES"
+  echo "Usage: $0 PKS_ENV_NAME PKS_CONTEXT CLUSTER_MASTER_VM_NAMES"
   exit 1
 fi
 
-TS_G_ENV=$1
-CLUSTER_NAME=$2
+PKS_ENV=$1
+PKS_CONTEXT=$2
 CLUSTER_MASTER_VMS=$3
 
-CLUSTER_MASTER_POOL=${TS_G_ENV}-${CLUSTER_NAME}
-CLUSTER_FRONTEND_ADDRESS=${TS_G_ENV}-${CLUSTER_NAME}-cluster-ip
-CLUSTER_LOADBALANCER=${TS_G_ENV}-${CLUSTER_NAME}-cluster
-DNS_ZONE=${TS_G_ENV}-zone
-DNS_NAME=${CLUSTER_NAME}.${TS_G_ENV}.cf-app.com
+CLUSTER_MASTER_POOL=${PKS_ENV}-${PKS_CONTEXT}
+CLUSTER_FRONTEND_ADDRESS=${PKS_ENV}-${PKS_CONTEXT}-cluster-ip
+CLUSTER_LOADBALANCER=${PKS_ENV}-${PKS_CONTEXT}-cluster
+DNS_ZONE=${PKS_ENV}-zone
+DNS_NAME=${PKS_CONTEXT}.${PKS_ENV}.cf-app.com
 
-GCLOUD_REGION=$(lpass show --notes Shared-Spinnaker/pcf/PKS-${TS_G_ENV} | jq -r .region)
+GCLOUD_REGION=$(lpass show --notes Shared-Spinnaker/pcf/PKS-${PKS_ENV} | jq -r .region)
 
 gcloud compute addresses create ${CLUSTER_FRONTEND_ADDRESS} \
   --region=${GCLOUD_REGION}

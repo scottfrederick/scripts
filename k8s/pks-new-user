@@ -1,2 +1,0 @@
-uaac user add sfrederick --emails sfrederick@pivotal.io -p mypcflab
-uaac member add pks.clusters.admin sfrederick

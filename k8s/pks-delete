@@ -1,0 +1,10 @@
+if [ "$#" -lt 2 ]; then
+  echo "Usage: $0 ENV_NAME CLUSTER_NAME"
+  exit 1
+fi
+
+TS_G_ENV=$1
+CLUSTER_NAME=$2
+pks delete-cluster ${CLUSTER_NAME}
+kubectl config delete-cluster ${CLUSTER_NAME}
+kubectl config delete-context ${CLUSTER_NAME} 

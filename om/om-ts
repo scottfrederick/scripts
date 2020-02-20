@@ -1,9 +1,16 @@
-TS_G_ENV=${1?"Usage: $0 ENV_NAME"}
+if [ "$#" -lt 1 ]; then
+  echo "Usage: $0 ENV_NAME"
+  exit 1
+fi
 
-OM_JSON=$(cat ~/Downloads/envs/${TS_G_ENV}.json | jq -r .ops_manager)
+set -x
+
+TS_G_ENV=${1}
+
+OM_JSON=$(lpass show --notes Shared-Spinnaker/pcf/PCF-${TS_G_ENV} | jq -r .ops_manager)
 if [ ! -z "$OM_JSON" ]
 then
-  OM_JSON=$(cat ~/Downloads/envs/${TS_G_ENV}.json | jq -r .opsman)
+  OM_JSON=$(lpass show --notes Shared-Spinnaker/pcf/PCF-${TS_G_ENV} | jq -r .opsman)
   export OM_TARGET=$(echo $OM_JSON | jq -r .address)
 else
   export OM_TARGET=$(echo $OM_JSON | jq -r .url)

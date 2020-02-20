@@ -1,1 +1,0 @@
-kubectl exec --namespace default -it spinnaker-spinnaker-halyard-0 bash
