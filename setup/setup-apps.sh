@@ -8,6 +8,6 @@ cd linux
 ./docker.sh
 ./brave.sh
 ./jetbrains.sh
-./zoom.sh 
+./terminator.sh 
 
 cd -

@@ -26,7 +26,7 @@ git clone https://github.com/scottfrederick/scripts .scripts
 
 echo ""
 echo "Cloning dotfiles"
-git clone https://github.com/scottfrederick/dotfile .dotfiles
+git clone https://github.com/scottfrederick/dotfiles .dotfiles
 cd .dotfiles
 ./setup-symlinks.#!/bin/sh
 cd -
