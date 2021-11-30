@@ -1,1 +1,0 @@
-cf login --skip-ssl-validation -a https://api.cf.scottfrederick.io -u sfrederick@pivotal.io -o sfrederick-org -s development

@@ -1,8 +1,0 @@
-if [ "$#" -lt 1 ]; then
-  echo "Usage: $0 ENV_NAME"
-  exit 1
-fi
-
-TS_G_ENV=${1}
-PAS_PASSWORD=$(ts-pwd ${TS_G_ENV})
-cf login -a "https://api.sys.${TS_G_ENV}.cf-app.com" -u admin -p ${PAS_PASSWORD} --skip-ssl-validation

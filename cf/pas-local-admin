@@ -1,2 +1,0 @@
-PASSWORD=$(om credentials --product-name cf --credential-reference .uaa.admin_credentials --format json | jq -r .password)
-cf login -a "https://api.cf.scottfrederick.io" -u admin -p $PASSWORD --skip-ssl-validation

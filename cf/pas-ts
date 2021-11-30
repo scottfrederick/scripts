@@ -1,7 +1,0 @@
-if [ "$#" -lt 1 ]; then
-  echo "Usage: $0 ENV_NAME"
-  exit 1
-fi
-
-TS_G_ENV=${1}
-cf login --skip-ssl-validation -a https://api.sys.${TS_G_ENV}.cf-app.com -u sfrederick@pivotal.io -o sfrederick-org -s development

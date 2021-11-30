@@ -1,2 +1,0 @@
-source om-ts
-om credentials --product-name cf --credential-reference .uaa.admin_credentials --format json | jq -r .password
