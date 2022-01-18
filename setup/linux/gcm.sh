@@ -1,6 +1,10 @@
 #!/bin/bash
 
 echo ""
+echo "Installing pass"
+sudo apt install pass
+
+echo ""
 echo "Installing git-credential-manager"
 
 wget "https://github.com/GitCredentialManager/git-credential-manager/releases/download/v2.0.632/gcmcore-linux_amd64.2.0.632.34631.deb" -O gcmcore.deb
