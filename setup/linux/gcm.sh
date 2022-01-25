@@ -2,7 +2,7 @@
 
 echo ""
 echo "Installing pass"
-sudo apt install pass
+sudo apt -y install pass
 
 echo ""
 echo "Installing git-credential-manager"

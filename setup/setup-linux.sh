@@ -3,22 +3,22 @@
 set -e
 
 echo "Updating Linux"
-sudo apt update
-sudo apt full-upgrade -y
-sudo apt install build-essential apt-transport-https curl file
+sudo apt -y update
+sudo apt -y full-upgrade
+sudo apt -y install build-essential apt-transport-https curl file
 
 echo ""
 echo "Installing zsh"
-sudo apt install zsh
+sudo apt -y install zsh
 chsh --shell /usr/bin/zsh
 
 echo ""
 echo "Installing git"
-sudo apt install git
+sudo apt -y install git
 
 echo ""
 echo "Installing vim"
-sudo apt install vim
+sudo apt -y install vim vim-gtk3
 
 if [ ! -d .scripts ]; then
   echo ""

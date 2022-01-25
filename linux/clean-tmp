@@ -1,0 +1,9 @@
+#!/bin/bash
+
+rm -rf /tmp/maven-build*
+rm -rf /tmp/gradle-*
+rm -f /tmp/buildpack*.tmp
+
+sudo apt autoremove
+sudo apt autoclean
+
