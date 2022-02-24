@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# fromhttps://askubuntu.com/questions/1029562/move-snap-packages-to-another-location-directory
+# from https://askubuntu.com/questions/1029562/move-snap-packages-to-another-location-directory
 
 ##############################################################################
 # Take Care this section may break your System !!!
