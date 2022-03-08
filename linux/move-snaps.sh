@@ -6,17 +6,22 @@
 # Take Care this section may break your System !!!
 ##############################################################################
 ##Move snap folder to Home instead of root.
-#Create the directory : you can change the location
-sudo mkdir -p /home/snap/snapd
-sudo chown -R $USER:$USER /home/snap
-
+  
 #Stop auto-updating (will *not* crash snaps already open)
 sudo systemctl mask snapd.service
 sudo systemctl stop snapd.service
 sudo systemctl disable snapd.service
 
-#Copy the data
-sudo rsync -avzP /var/lib/snapd/  /home/snap/snapd/
+#Create the directory : you can change the location
+if [ -d /home/snap/snapd ]; then
+  echo "/home/snap exists"
+else
+  sudo mkdir -p /home/snap/snapd
+  sudo chown -R $USER:$USER /home/snap
+
+  #Copy the data
+  sudo rsync -avzP /var/lib/snapd/ /home/snap/snapd/
+fi
 
 #Do backups
 sudo mv /var/lib/snapd /var/lib/snapd.bak
