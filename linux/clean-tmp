@@ -1,6 +1,12 @@
 #!/bin/bash
 
 rm -rf /tmp/maven-build*
-rm -rf /tmp/gradle-*
-rm -f /tmp/buildpack*.tmp
+rm -rf /tmp/junit*
+rm -rf /tmp/gradle*
+rm -rf /tmp/tomcat*
 
+rm -f /tmp/buildpack*.tmp
+rm -f /tmp/generate*.log
+rm -f /tmp/jetty*.log
+rm -f /tmp/kotlin*
+rm -f /tmp/spring*
