@@ -1,0 +1,6 @@
+#!/bin/bash
+
+# see https://kb.vmware.com/s/article/2146460
+
+sudo /usr/src/linux-headers-`uname -r`/scripts/sign-file sha256 ~/.gnupg/MOK.priv ~/.gnupg/MOK.der $(modinfo -n vmmon)
+sudo /usr/src/linux-headers-`uname -r`/scripts/sign-file sha256 ~/.gnupg/MOK.priv ~/.gnupg/MOK.der $(modinfo -n vmnet)
