@@ -10,7 +10,7 @@ fi
 BRANCH=$1
 
 pushd ~/Projects/spring/spring-boot
-git pull upstream
+# git pull upstream
 git worktree add -b ${BRANCH} ../spring-boot-${BRANCH}
 
 pushd ../spring-boot-${BRANCH}

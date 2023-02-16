@@ -1,7 +1,5 @@
 #!/bin/bash
 
-SYSTEM_MVN=/usr/local/bin/mvn
-
 CWD=$PWD
 until [ $CWD == / ]; do
     MVNW=$CWD/mvnw
@@ -11,5 +9,5 @@ until [ $CWD == / ]; do
     CWD=$(dirname $CWD)
 done
 
-echo No Maven wrapper found, using $SYSTEM_MVN
-exec $SYSTEM_MVN "$@"
+echo No Maven wrapper found, using $(which mvn)
+exec mvn "$@"

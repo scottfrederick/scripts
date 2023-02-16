@@ -1,0 +1,11 @@
+#!/bin/bash
+
+scripts_dir=${HOME}/.local/share/JetBrains/Toolbox/scripts/
+
+if [[ -d "${scripts_dir}" ]]; then
+  for script in `find ${scripts_dir} -maxdepth 1 -type f`; do 
+    [ -e "${script}" ] || continue
+    echo creating symlink from ${script} to ${HOME}/.local/bin/$(basename "${script}") 
+    ln -s ${script} ${HOME}/.local/bin/$(basename "${script}") 
+  done
+fi
