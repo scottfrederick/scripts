@@ -1,4 +1,4 @@
 #!/bin/bash
 
-dconf dump / > ~/.dotfiles/dconf-dump
-brew bundle dump --file ~/.dotfiles/Brewfile --force
+dconf dump / > ~/dconf-dump
+brew bundle dump --file ~/Brewfile --force

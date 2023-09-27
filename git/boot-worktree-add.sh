@@ -14,6 +14,7 @@ pushd ~/Projects/spring/spring-boot
 git worktree add -b ${BRANCH} ../spring-boot-${BRANCH}
 
 pushd ../spring-boot-${BRANCH}
+git fetch upstream
 git checkout ${BRANCH}
 git reset --hard upstream/${BRANCH}
 git push --set-upstream origin ${BRANCH}

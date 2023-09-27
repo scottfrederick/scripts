@@ -4,9 +4,19 @@ rm -rf /tmp/maven-build*
 rm -rf /tmp/junit*
 rm -rf /tmp/gradle*
 rm -rf /tmp/tomcat*
+rm -rf /tmp/jetty*
+rm -rf /tmp/create-builder-test-*.tmp
+rm -rf /tmp/native-platform*dir
+rm -rf /tmp/sync.studio.tooling*.gradle
+rm -rf /tmp/HazelcastAutoConfigurationClientTests*
+rm -rf /tmp/jsp
+rm -rf /tmp/kafka-streams
+rm -rf /tmp/root.jar-spring-boot-libs*
 
 rm -f /tmp/buildpack*.tmp
 rm -f /tmp/generate*.log
-rm -f /tmp/jetty*.log
 rm -f /tmp/kotlin*
 rm -f /tmp/spring*
+rm -f /tmp/byteBuddyAgent*.jar
+rm -f /tmp/*.gradle
+
