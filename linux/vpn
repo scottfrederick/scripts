@@ -1,0 +1,102 @@
+#!/usr/bin/expect -f
+#
+# Tested on Fedora Asahi Remix
+#
+# Note: To debug use
+#
+#     expect -d vpn vmw
+#
+# etc.
+#
+# Usage:
+#
+# vpn [vmw|bc|off]
+#
+#   vpn vmw    # Connect to VMware VPN. defaults to gpu. Randomly picks between US-Wenatchee/US-Wenatchee-1
+#   vpn bc     # Connect to Broadcom VPN. Uses San Jose server
+#   vpn off
+
+set timeout 60
+
+set argsCount [llength $argv]
+if {$argsCount eq 0} {
+    set arg "vmw"
+} else {
+    set arg [lindex $argv 0]
+}
+
+set currentUser $env(USER)
+set sudoPassword [exec op read "op://Work/Dell Laptop/password"]
+
+if {$arg eq "vmw"} {
+    set oktaUser "$currentUser@vmware.com"
+    set vpnserver "gpu.vmware.com"
+    set currentTime [clock seconds]
+    set currentMinute [clock  format $currentTime -format "%M"]
+    set authGroup "US-Austin"
+} elseif {$arg eq "bc"} {
+    set vpnserver "portal.vpn.broadcom.com"
+    set authGroup "San Jose"
+    set oktaUser [exec op read "op://Work/Broadcom Okta/username"]
+} elseif {$arg eq "off"} {
+    spawn sudo pkill -9 openconnect
+    expect {
+        -re "\\\[sudo\\\] password for $currentUser:" {
+            send "$sudoPassword\r"
+        }
+        eof {
+            exit 0
+        }
+        timeout {
+            puts "No sudo password requested"
+            exit 1
+        }
+    }
+    exit 0
+} else {
+    puts "What?"
+    exit 1
+}
+
+set oktaPassword [exec op read "op://Work/Broadcom Okta/password"]
+
+spawn sudo openconnect --protocol gp --user "$oktaUser" --csd-wrapper /usr/libexec/openconnect/hipreport.sh --background $vpnserver
+
+expect {
+    -re "\\\[sudo\\\] password for $currentUser:" {
+        send "$sudoPassword\r"
+    }
+    timeout {
+        puts "No sudo password requested"
+        exit 1
+    }
+}
+expect {
+    "Password:" {
+        send "$oktaPassword\r"
+    }
+    timeout {
+        puts "No Okta password requested"
+        exit 1
+    }
+}
+expect {
+    "2 - Okta Verify Push" {
+        send "2\r"
+    }
+    timeout {
+        puts "Did not reach Okta verify stage"
+        exit 1
+    }
+}
+expect {
+    "Enter 'yes' to accept, 'no' to abort; anything else to view:" {
+        send "yes\r"
+    }
+    timeout 30 {
+        puts "Connection not established"
+        exit 1
+    }
+}
+
+interact

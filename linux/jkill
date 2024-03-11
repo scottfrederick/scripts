@@ -1,0 +1,8 @@
+#!/bin/bash
+
+if [ "$#" -ne 1 ]; then
+    echo "Usage: jkill [process name]"
+    exit 1
+fi
+
+kill $(jps | grep $1 | awk '{print $1}')
