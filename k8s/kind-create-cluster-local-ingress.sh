@@ -36,9 +36,18 @@ nodes:
     protocol: TCP
 containerdConfigPatches:
 - |-
-  [plugins."io.containerd.grpc.v1.cri".registry.mirrors."localhost:${reg_port}"]
-    endpoint = ["http://${reg_name}:5000"]
+  [plugins."io.containerd.grpc.v1.cri".registry]
+    config_path = "/etc/containerd/certs.d"
 EOF
+
+# add the registry config to the nodes
+REGISTRY_DIR="/etc/containerd/certs.d/localhost:${reg_port}"
+for node in $(kind get nodes); do
+  docker exec "${node}" mkdir -p "${REGISTRY_DIR}"
+  cat <<EOF | docker exec -i "${node}" cp /dev/stdin "${REGISTRY_DIR}/hosts.toml"
+[host."http://${reg_name}:5000"]
+EOF
+done
 
 # connect the registry to the cluster network if not already connected
 if [ "$(docker inspect -f='{{json .NetworkSettings.Networks.kind}}' "${reg_name}")" = 'null' ]; then
