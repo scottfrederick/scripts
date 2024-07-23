@@ -24,8 +24,8 @@ pushd .git-hooks
 ln -s ../git/hooks/forward-merge commit-msg
 ln -s ../git/hooks/prepare-forward-merge prepare-commit-msg
 git config core.hooksPath ./.git-hooks
-
 popd
+
 popd
 
 git worktree list

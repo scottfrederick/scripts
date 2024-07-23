@@ -1,0 +1,21 @@
+#!/bin/bash
+
+
+docker system prune --volumes -f 
+
+volumes=$(docker volume ls -f dangling=true -q)
+
+if [[ -n ${volumes} ]]; then
+  docker volume rm -f ${volumes}
+fi
+
+images=$(docker images --filter=reference="pack.local/*/*:*" -q 2>/dev/null)
+if [[ -n ${images} ]]; then
+  docker rmi -f ${images}
+fi
+
+images=$(docker images --filter=reference="packeto-integration/*:*" -q 2>/dev/null)
+if [[ -n ${images} ]]; then
+  docker rmi -f ${images}
+fi
+

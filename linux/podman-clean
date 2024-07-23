@@ -1,0 +1,21 @@
+#!/bin/bash
+
+
+podman system prune --volumes -f 
+
+volumes=$(podman volume ls -f dangling=true -q)
+
+if [[ -n ${volumes} ]]; then
+  podman volume rm -f ${volumes}
+fi
+
+images=$(podman images --filter=reference="pack.local/*/*:*" -q 2>/dev/null)
+if [[ -n ${images} ]]; then
+  podman rmi -f ${images}
+fi
+
+images=$(podman images --filter=reference="packeto-integration/*:*" -q 2>/dev/null)
+if [[ -n ${images} ]]; then
+  podman rmi -f ${images}
+fi
+

@@ -1,0 +1,13 @@
+#!/bin/bash
+
+if [ $# -eq 1 ]; then
+  imagename="$1"
+elif [ $# -eq 2 ]; then 
+  imagename="$1:$2"
+else
+  echo "Usage: $0 imagename[:tag]"
+  exit 1
+fi
+
+docker rmi --force "$(docker images -q ${imagename} | uniq)"
+
