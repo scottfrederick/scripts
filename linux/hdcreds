@@ -1,0 +1,50 @@
+#!/bin/bash
+
+gh_user=$(op read "op://employee/herodevs-nes-github-registry/username")
+gh_token=$(op read "op://employee/herodevs-nes-github-registry/password")
+
+artifactory_user=$(op read "op://employee/herodevs-nes-artifactory-registry/username")
+artifactory_token=$(op read "op://employee/herodevs-nes-artifactory-registry/password")
+
+dev_user=scott@herodevs.com
+dev_token=$(op read "op://NES Engineering/nes-dev-registry-test-tokens/allaccess")
+
+prod_user=scott@herodevs.com
+prod_token=$(op read "op://NES Engineering/nes-prod-registry-test-tokens/allaccess")
+
+
+export GITHUB_PERSONAL_ACCESS_TOKEN=${gh_token}
+
+export GITHUB_USER=${gh_user}
+export GITHUB_TOKEN=${gh_token}
+
+export NES_MAVEN_URL=https://nes.jfrog.io/artifactory/int-maven-snapshot
+
+export ORG_GRADLE_PROJECT_herodevs_nes_maven_registry_url=https://nes.jfrog.io/artifactory/int-maven-snapshot
+export ORG_GRADLE_PROJECT_herodevs_nes_maven_registry_user=${artifactory_user}
+export ORG_GRADLE_PROJECT_herodevs_nes_maven_registry_token=${artifactory_token}
+
+export ORG_GRADLE_PROJECT_herodevs_nes_github_registry_user=${gh_user}
+export ORG_GRADLE_PROJECT_herodevs_nes_github_registry_token=${gh_token}
+
+export ORG_GRADLE_PROJECT_herodevs_nes_registry_user=${prod_user}
+export ORG_GRADLE_PROJECT_herodevs_nes_registry_token=${prod_token}
+
+export ORG_GRADLE_PROJECT_herodevs_nes_dev_registry_user=${dev_user}
+export ORG_GRADLE_PROJECT_herodevs_nes_dev_registry_token=${dev_token}
+
+# used in ~/.m2/settings.xml
+export NES_DEV_USER=${dev_user}
+export NES_DEV_TOKEN=${dev_token}
+
+export NES_PROD_USER=${prod_user}
+export NES_PROD_TOKEN=${prod_token}
+
+export NES_USER=${prod_user}
+export NES_TOKEN=${prod_token}
+
+export NES_GITHUB_REGISTRY_TOKEN=${gh_token}
+
+export ARTIFACTORY_URL=https://nes.jfrog.io/artifactory
+export ARTIFACTORY_USER=${artifactory_user}
+export ARTIFACTORY_TOKEN=${artifactory_token}

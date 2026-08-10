@@ -1,0 +1,106 @@
+#!/usr/bin/env bash
+#
+# conductor-portfwd: manage tsh kubectl port-forwards for conductor in a tmux session
+#
+# Usage:
+#   conductor-portfwd start   # start the tmux session with port-forwards (default)
+#   conductor-portfwd stop    # kill the session
+#   conductor-portfwd attach  # attach to the running session
+#   conductor-portfwd status  # show session and port status
+
+set -euo pipefail
+
+SESSION="conductor-pf"
+NAMESPACE="conductor"
+SVC_PORT="8080:8080"
+POD_PORT="5000:5000"
+KUBECONFIG_PATH="${KUBECONFIG:-$HOME/.kube/teleport-config.yaml}"
+
+SVC_LOOP="export KUBECONFIG=$KUBECONFIG_PATH;
+while true; do
+  echo \"[\$(date +%H:%M:%S)] starting svc/conductor port-forward...\";
+  tsh kubectl --namespace $NAMESPACE port-forward svc/conductor $SVC_PORT \
+    || echo \"[\$(date +%H:%M:%S)] exited \$?, restarting in 2s\";
+  sleep 2;
+done"
+
+POD_LOOP="export KUBECONFIG=$KUBECONFIG_PATH;
+while true; do
+  echo \"[\$(date +%H:%M:%S)] resolving first pod...\";
+  POD=\$(tsh kubectl --namespace $NAMESPACE get po -o name | head -1);
+  if [ -z \"\$POD\" ]; then
+    echo \"[\$(date +%H:%M:%S)] no pod found, retrying in 5s\";
+    sleep 5;
+    continue;
+  fi;
+  echo \"[\$(date +%H:%M:%S)] starting port-forward to \$POD...\";
+  tsh kubectl --namespace $NAMESPACE port-forward \"\$POD\" $POD_PORT \
+    || echo \"[\$(date +%H:%M:%S)] exited \$?, restarting in 2s\";
+  sleep 2;
+done"
+
+cmd_start() {
+  if tmux has-session -t "$SESSION" 2>/dev/null; then
+    echo "Session '$SESSION' already running. Use 'attach' or 'stop'."
+    exit 0
+  fi
+
+  if [ ! -f "$KUBECONFIG_PATH" ]; then
+    echo "Warning: KUBECONFIG file not found at $KUBECONFIG_PATH"
+    echo "You may need to run 'tsh login' / 'tsh kube login <cluster>' first."
+  fi
+
+  # Force bash for the pane shells so the loop syntax behaves predictably
+  tmux new-session -d -s "$SESSION" -n portfwd "bash -c '$SVC_LOOP'"
+  tmux split-window -t "$SESSION":portfwd -v "bash -c '$POD_LOOP'"
+  tmux select-layout -t "$SESSION":portfwd even-vertical
+
+  echo "Started session '$SESSION'."
+  echo "  KUBECONFIG    = $KUBECONFIG_PATH"
+  echo "  svc/conductor -> localhost:${SVC_PORT%:*}"
+  echo "  first pod     -> localhost:${POD_PORT%:*}"
+  echo
+  echo "Attach:  $0 attach   (then Ctrl-b d to detach)"
+  echo "Stop:    $0 stop"
+}
+
+cmd_stop() {
+  if tmux has-session -t "$SESSION" 2>/dev/null; then
+    tmux kill-session -t "$SESSION"
+    echo "Stopped session '$SESSION'."
+  else
+    echo "No session '$SESSION' running."
+  fi
+}
+
+cmd_attach() {
+  if ! tmux has-session -t "$SESSION" 2>/dev/null; then
+    echo "No session '$SESSION' running. Run '$0 start' first."
+    exit 1
+  fi
+  tmux attach -t "$SESSION"
+}
+
+cmd_status() {
+  if tmux has-session -t "$SESSION" 2>/dev/null; then
+    echo "Session '$SESSION' is running."
+    tmux list-panes -t "$SESSION":portfwd -F '  pane #{pane_index}: pid=#{pane_pid}'
+  else
+    echo "Session '$SESSION' is NOT running."
+  fi
+  echo "KUBECONFIG: $KUBECONFIG_PATH"
+  echo
+  echo "Port listeners:"
+  ss -ltn '( sport = :8080 or sport = :5000 )' 2>/dev/null \
+    || netstat -ltn 2>/dev/null | grep -E ':(8080|5000)\s' \
+    || echo "  (install iproute2 or net-tools to check)"
+}
+
+case "${1:-start}" in
+  start)  cmd_start  ;;
+  stop)   cmd_stop   ;;
+  attach) cmd_attach ;;
+  status) cmd_status ;;
+  *)      echo "Usage: $0 {start|stop|attach|status}"; exit 1 ;;
+esac
+

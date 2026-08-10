@@ -1,0 +1,11 @@
+#!/bin/bash
+
+source "$(dirname "${BASH_SOURCE[0]}")/hdcreds"
+
+nes_github_maven_url=https://maven.pkg.github.com/neverendingsupport/spring-framework
+
+export NES_MAVEN_URL=${nes_github_maven_url}
+
+export ORG_GRADLE_PROJECT_herodevs_nes_maven_registry_url=${nes_github_maven_url}
+export ORG_GRADLE_PROJECT_herodevs_nes_maven_registry_user=${GITHUB_USER}
+export ORG_GRADLE_PROJECT_herodevs_nes_maven_registry_token=${GITHUB_TOKEN}

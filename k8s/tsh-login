@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+export KUBECONFIG=${HOME}/.kube/teleport-config.yaml
+tsh login --proxy=teleport.infra.apps.herodevs.io
+tsh kube login stage-01
