@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source "$(dirname "${BASH_SOURCE[0]}")/hdcreds"
+source "$(command -v hdcreds)"
 
 nes_github_maven_url=https://maven.pkg.github.com/neverendingsupport/spring-framework
 
