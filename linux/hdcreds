@@ -1,5 +1,8 @@
 #!/bin/bash
 
+[[ -n "$INTELLIJ_ENVIRONMENT_READER" ]] && return 0
+[[ -n "$GITHUB_TOKEN" ]] && return 0
+
 gh_user=$(op read "op://employee/herodevs-nes-github-registry/username")
 gh_token=$(op read "op://employee/herodevs-nes-github-registry/password")
 
@@ -13,19 +16,19 @@ prod_user=scott@herodevs.com
 prod_token=$(op read "op://NES Engineering/nes-prod-registry-test-tokens/allaccess")
 
 
-export GITHUB_PERSONAL_ACCESS_TOKEN=${gh_token}
-
 export GITHUB_USER=${gh_user}
 export GITHUB_TOKEN=${gh_token}
 
 export NES_MAVEN_URL=https://nes.jfrog.io/artifactory/int-maven-snapshot
+export NES_MAVEN_USER=scott@herodevs.com
+export NES_MAVEN_TOKEN=${artifactory_token}
 
 export ORG_GRADLE_PROJECT_herodevs_nes_maven_registry_url=https://nes.jfrog.io/artifactory/int-maven-snapshot
 export ORG_GRADLE_PROJECT_herodevs_nes_maven_registry_user=${artifactory_user}
 export ORG_GRADLE_PROJECT_herodevs_nes_maven_registry_token=${artifactory_token}
 
-export ORG_GRADLE_PROJECT_herodevs_nes_github_registry_user=${gh_user}
-export ORG_GRADLE_PROJECT_herodevs_nes_github_registry_token=${gh_token}
+#export ORG_GRADLE_PROJECT_herodevs_nes_github_registry_user=${gh_user}
+#export ORG_GRADLE_PROJECT_herodevs_nes_github_registry_token=${gh_token}
 
 export ORG_GRADLE_PROJECT_herodevs_nes_registry_user=${prod_user}
 export ORG_GRADLE_PROJECT_herodevs_nes_registry_token=${prod_token}
@@ -39,11 +42,6 @@ export NES_DEV_TOKEN=${dev_token}
 
 export NES_PROD_USER=${prod_user}
 export NES_PROD_TOKEN=${prod_token}
-
-export NES_USER=${prod_user}
-export NES_TOKEN=${prod_token}
-
-export NES_GITHUB_REGISTRY_TOKEN=${gh_token}
 
 export ARTIFACTORY_URL=https://nes.jfrog.io/artifactory
 export ARTIFACTORY_USER=${artifactory_user}

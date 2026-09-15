@@ -5,7 +5,9 @@ source "$(command -v hdcreds)"
 nes_github_maven_url=https://maven.pkg.github.com/neverendingsupport/spring-framework
 
 export NES_MAVEN_URL=${nes_github_maven_url}
+export NES_MAVEN_USER=${gh_user}
+export NES_MAVEN_TOKEN=${gh_token}
 
 export ORG_GRADLE_PROJECT_herodevs_nes_maven_registry_url=${nes_github_maven_url}
-export ORG_GRADLE_PROJECT_herodevs_nes_maven_registry_user=${GITHUB_USER}
-export ORG_GRADLE_PROJECT_herodevs_nes_maven_registry_token=${GITHUB_TOKEN}
+export ORG_GRADLE_PROJECT_herodevs_nes_maven_registry_user=${gh_user}
+export ORG_GRADLE_PROJECT_herodevs_nes_maven_registry_token=${gh_token}
