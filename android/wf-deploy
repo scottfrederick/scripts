@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+# wf-deploy — install a watch-face APK and set it active on a device.
+#
+# Usage:
+#   wf-deploy [-t watch|emu] [apk-path]
+#
+# - Target: with one device connected, uses it. With both a watch and an
+#   emulator, requires -t watch|emu. A "watch" is recognised whether it appears
+#   as an IP:port (wf-connect / wireless debugging) OR as an mDNS
+#   "..._adb-tls-connect._tcp" serial (how Wear OS often auto-reconnects).
+# - apk-path: defaults to the debug APK under the current project
+#   (watchface/build/outputs/apk/debug/watchface-debug.apk).
+# - App id and the activation broadcast are auto-derived from the APK.
+set -euo pipefail
+
+ADB="${ANDROID_HOME:-$HOME/Android/Sdk}/platform-tools/adb"
+AAPT2="${ANDROID_HOME:-$HOME/Android/Sdk}/build-tools/35.0.0/aapt2"
+
+target=""
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -t) target="$2"; shift 2 ;;
+        -h|--help) grep '^#' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+        *) apk="$1"; shift ;;
+    esac
+done
+
+apk="${apk:-watchface/build/outputs/apk/debug/watchface-debug.apk}"
+if [ ! -f "$apk" ]; then
+    echo "APK not found: $apk (run from the project root, or pass a path)" >&2
+    exit 1
+fi
+
+# Resolve the app id from the APK so this isn't hardcoded to one project.
+appid=$("$AAPT2" dump badging "$apk" 2>/dev/null \
+        | sed -n "s/^package: name='\([^']*\)'.*/\1/p")
+[ -n "$appid" ] || { echo "Could not read package id from $apk" >&2; exit 1; }
+
+# Classify connected devices. Parse `adb devices` splitting only on the trailing
+# tab (mDNS serials contain spaces, so field-splitting on whitespace corrupts
+# them). Populate watch/emu serial lists, deduping.
+watch_serials=(); emu_serials=()
+seen=""
+while IFS= read -r line; do
+    # lines look like:  <serial>\tdevice
+    case "$line" in
+        *$'\t'device) ;;                 # a connected device
+        *) continue ;;
+    esac
+    serial="${line%$'\t'device}"
+    # dedupe: adb registers the same mDNS device twice, tagging one with a
+    # " (N)" suffix inserted before the "._adb-tls-connect._tcp" part. Compare on
+    # a suffix-stripped key, but ALWAYS target the serial exactly as adb lists it
+    # (the normalized name may not exist as a real device).
+    key=$(printf '%s' "$serial" | sed -E 's/ \([0-9]+\)//g')
+    case ",$seen," in *",$key,"*) continue ;; esac
+    seen="$seen,$key"
+    case "$serial" in
+        emulator-[0-9]*)               emu_serials+=("$serial") ;;
+        *:[0-9]*)                      watch_serials+=("$serial") ;;   # IP:port
+        *_adb-tls-connect._tcp)        watch_serials+=("$serial") ;;   # mDNS
+        *)                             watch_serials+=("$serial") ;;   # assume watch
+    esac
+done < <("$ADB" devices)
+
+pick_one() {  # $1=label, rest=candidates
+    local label="$1"; shift
+    if [ "$#" -eq 0 ]; then
+        echo "No $label connected." >&2; return 1
+    elif [ "$#" -gt 1 ]; then
+        echo "Multiple $label devices; disconnect extras or pass an explicit serial:" >&2
+        printf '  %s\n' "$@" >&2; return 1
+    fi
+    printf '%s' "$1"
+}
+
+case "$target" in
+    watch) serial=$(pick_one "watch" "${watch_serials[@]}") || exit 1 ;;
+    emu)   serial=$(pick_one "emulator" "${emu_serials[@]}") || {
+               echo "  (try wear-emulator to start one)" >&2; exit 1; } ;;
+    "")
+        all=("${watch_serials[@]}" "${emu_serials[@]}")
+        if [ "${#all[@]}" -eq 0 ]; then
+            echo "No devices connected. Run wf-connect (watch) or wear-emulator (emu)." >&2; exit 1
+        elif [ "${#all[@]}" -gt 1 ]; then
+            echo "Multiple devices connected; pick one with -t watch|emu:" >&2
+            printf '  %s\n' "${all[@]}" >&2; exit 1
+        fi
+        serial="${all[0]}" ;;
+    *) echo "Unknown target '$target' (use watch or emu)" >&2; exit 1 ;;
+esac
+
+echo "Deploying $appid -> $serial"
+"$ADB" -s "$serial" install -r "$apk"
+result=$("$ADB" -s "$serial" shell am broadcast \
+    -a com.google.android.wearable.app.DEBUG_SURFACE \
+    --es operation set-watchface --es watchFaceId "$appid" 2>&1)
+echo "$result" | grep -oE 'result=[0-9-]*|data="[^"]*"' || echo "$result"
+echo "Done. (Watch-face surface is DRM-protected, so screencap of it is blank —"
+echo " confirm visually on the device.)"

@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# wf-build — regenerate assets (optional) and build the watch-face APK.
+#
+# Usage (run from the project root, where flake.nix lives):
+#   wf-build            build the debug APK
+#   wf-build -a         regenerate digits+assets first, then build  (--assets)
+#   wf-build -r         build the release bundle (bundleRelease)     (--release)
+#   wf-build -a -r      regenerate assets, then build the release bundle
+#
+# Everything runs inside `nix develop` so the flake supplies JDK17, gradle,
+# Python+Pillow and the NixOS aapt2 override. Asset regen runs digits BEFORE
+# assets (gen_assets.py composites the digit PNGs).
+set -euo pipefail
+
+do_assets=0
+gradle_task=":watchface:assembleDebug"
+out="watchface/build/outputs/apk/debug/watchface-debug.apk"
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -a|--assets)  do_assets=1 ;;
+        -r|--release) gradle_task=":watchface:bundleRelease"
+                      out="watchface/build/outputs/bundle/release/watchface-release.aab" ;;
+        -h|--help)    grep '^#' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+        *) echo "Unknown option: $1" >&2; exit 1 ;;
+    esac
+    shift
+done
+
+if [ ! -f flake.nix ]; then
+    echo "flake.nix not found — run wf-build from the project root." >&2
+    exit 1
+fi
+
+# Build the command(s) to run inside the dev shell.
+inner=""
+if [ "$do_assets" -eq 1 ]; then
+    inner+='echo ">> regenerating assets"; '
+    inner+='python3 tools/gen_digits.py && python3 tools/gen_assets.py && '
+fi
+inner+="echo '>> gradle $gradle_task'; "
+inner+="gradle $gradle_task --no-daemon --console=plain"
+
+nix develop --command bash -c "$inner"
+
+echo
+if [ -f "$out" ]; then
+    echo "Built: $out"
+else
+    echo "Build finished but expected artifact not found: $out" >&2
+    exit 1
+fi

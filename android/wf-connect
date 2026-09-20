@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+# wf-connect — connect to the Galaxy Watch over wireless ADB.
+#
+# Wear OS wireless debugging changes its connect PORT every time it restarts or
+# the watch reboots (the IP is usually stable on your LAN). This tries the
+# last-known address first; if that's dead, it walks you through pairing.
+#
+# Remembers the last good address in ~/.scripts/android/.wf-watch so wf-deploy
+# can target the watch without you retyping it.
+set -euo pipefail
+
+ADB="${ANDROID_HOME:-$HOME/Android/Sdk}/platform-tools/adb"
+STATE="$HOME/.scripts/android/.wf-watch"
+
+is_connected() {  # $1 = ip:port
+    "$ADB" devices | grep -q "^$1[[:space:]]*device$"
+}
+
+# 1. Try the last-known address.
+if [ -f "$STATE" ]; then
+    last=$(cat "$STATE")
+    if is_connected "$last"; then
+        echo "Watch already connected: $last"
+        exit 0
+    fi
+    # Clear any stale 'offline' entry for this address before retrying.
+    "$ADB" disconnect "$last" >/dev/null 2>&1 || true
+    echo "Trying last-known address $last ..."
+    if "$ADB" connect "$last" 2>/dev/null | grep -q "connected" && is_connected "$last"; then
+        echo "$last" > "$STATE"
+        echo "Connected: $last"
+        exit 0
+    fi
+    echo "  ...not reachable (port likely changed, or watch screen asleep)."
+fi
+
+# 2. Interactive pairing / connect.
+cat <<'EOF'
+
+On the watch: Settings -> Developer options -> Wireless debugging.
+  - "Pair new device" shows a PAIR address (IP:port) + a 6-digit code.
+  - The main screen shows the CONNECT address (IP:port) — usually a different port.
+
+EOF
+read -rp "Pair address (IP:port), or blank to skip pairing: " pair_addr
+if [ -n "$pair_addr" ]; then
+    read -rp "6-digit pairing code: " code
+    "$ADB" pair "$pair_addr" "$code"
+fi
+
+read -rp "Connect address (IP:port): " conn_addr
+if [ -z "$conn_addr" ]; then
+    echo "No connect address given; aborting." >&2
+    exit 1
+fi
+"$ADB" connect "$conn_addr"
+if is_connected "$conn_addr"; then
+    echo "$conn_addr" > "$STATE"
+    echo "Connected and saved: $conn_addr"
+else
+    echo "Connect reported success but device not 'device' state yet." >&2
+    echo "$conn_addr" > "$STATE"   # save anyway; it may authorize on the watch
+    echo "If the watch shows an 'Allow debugging?' prompt, tap Allow, then re-run." >&2
+fi

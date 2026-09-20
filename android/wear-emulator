@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# Launch the Android Wear OS emulator on NixOS.
+#
+# The emulator's QEMU is a prebuilt (non-Nix) binary that expects system libs
+# at FHS paths NixOS doesn't provide. We realize the needed libraries from
+# nixpkgs (each run, so `nix-collect-garbage` can't break this) and point
+# LD_LIBRARY_PATH at their lib dirs.
+set -euo pipefail
+export ANDROID_HOME="${ANDROID_HOME:-$HOME/Android/Sdk}"
+export ANDROID_SDK_ROOT="$ANDROID_HOME"
+
+AVD="${1:-Wear_OS_Large_Round}"
+if [ $# -gt 0 ]; then shift; fi
+
+PKGS=(
+  libpulseaudio libpng zlib expat freetype "fontconfig.lib"
+  nss nspr "dbus.lib" "libdrm.out" libxkbcommon alsa-lib
+  "stdenv.cc.cc.lib" glib mesa libGL libbsd libmd
+  xorg.libX11 xorg.libXext xorg.libXcursor xorg.libXrandr xorg.libXi
+  xorg.libxcb xorg.libXfixes xorg.libXcomposite xorg.libXrender
+  xorg.libXtst xorg.libXdamage xorg.libxkbfile
+  # xcb-util family + ICE/SM required by Qt's xcb platform plugin (Qt >= 6.5)
+  xorg.xcbutilcursor xorg.xcbutil xorg.xcbutilwm xorg.xcbutilimage
+  xorg.xcbutilkeysyms xorg.xcbutilrenderutil xorg.libICE xorg.libSM
+)
+REFS=(); for p in "${PKGS[@]}"; do REFS+=("nixpkgs#$p"); done
+
+echo "wear-emulator: realizing runtime libraries from nixpkgs..." >&2
+OUTS=$(nix build --no-link --print-out-paths "${REFS[@]}")
+LP=""; while IFS= read -r o; do [ -d "$o/lib" ] && LP="$LP:$o/lib"; done <<< "$OUTS"
+
+# The emulator's own bundled libraries (libandroid-emu-*, Qt6*AndroidEmu, etc.)
+# live under emulator/lib64; QEMU needs those too.
+for d in lib64 lib64/qt/lib lib64/vulkan lib64/gles_swiftshader \
+         qemu/linux-x86_64/lib64; do
+  [ -d "$ANDROID_HOME/emulator/$d" ] && LP="$LP:$ANDROID_HOME/emulator/$d"
+done
+
+LP="${LP#:}"
+# The emulator launcher forwards LD_LIBRARY_PATH to QEMU; also set
+# NIX_LD_LIBRARY_PATH (this box has nix-ld) as a belt-and-suspenders fallback.
+export LD_LIBRARY_PATH="${LP}${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export NIX_LD_LIBRARY_PATH="${LP}${NIX_LD_LIBRARY_PATH:+:$NIX_LD_LIBRARY_PATH}"
+
+# The emulator's bundled Qt has no wayland plugin; force the xcb plugin (works
+# via XWayland) and point Qt at the bundled plugin dir.
+export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-xcb}"
+export QT_PLUGIN_PATH="$ANDROID_HOME/emulator/lib64/qt/plugins${QT_PLUGIN_PATH:+:$QT_PLUGIN_PATH}"
+
+exec "$ANDROID_HOME/emulator/emulator" -avd "$AVD" -gpu swiftshader_indirect "$@"
