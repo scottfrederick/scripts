@@ -10,10 +10,10 @@ artifactory_user=$(op read "op://employee/herodevs-nes-artifactory-registry/user
 artifactory_token=$(op read "op://employee/herodevs-nes-artifactory-registry/password")
 
 dev_user=scott@herodevs.com
-dev_token=$(op read "op://NES Engineering/nes-dev-registry-test-tokens/allaccess")
+dev_token=$(op read "op://Java Squad/nes-dev-registry-test-tokens/allaccess")
 
 prod_user=scott@herodevs.com
-prod_token=$(op read "op://NES Engineering/nes-prod-registry-test-tokens/allaccess")
+prod_token=$(op read "op://Java Squad/nes-prod-registry-test-tokens/allaccess")
 
 
 export GITHUB_USER=${gh_user}
