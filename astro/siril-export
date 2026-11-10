@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+#
+# siril-export: enlarge finished planetary images and save them as JPEG with Siril.
+#
+#   siril-export [options] FILE.fits [FILE.fits ...]
+#
+# For each input, Siril loads it, runs `resample <scale>` and `savejpg <name> <quality>`.
+# The JPEG is named after the capture (date, time, target) and written next to the input:
+#   2026-11-09-211008-Saturn-Bin1 56.8F_pss_rgb_finished.fits  ->  2026-11-09-211008-Saturn.jpg
+#   (other names: everything from the first space and a trailing _finished are dropped)
+# The FITS file itself is never modified.
+#
+# Options:
+#   -s, --scale N      resample factor (default 2)
+#   -q, --quality N    JPEG quality 1-100 (default 95)
+#   -o, --out-dir DIR  write the JPEGs here instead of next to each input
+#   -f, --force        overwrite existing JPEGs
+#   -h, --help         show this help
+#
+# Siril is run headless via siril-cli; the org.siril.Siril flatpak is used if
+# siril-cli is not on PATH. Set SIRIL_CLI to override, e.g. SIRIL_CLI="siril-cli".
+#
+# Examples:
+#   siril-export ~/Astro/Saturn-processed/2026-11-09/*_finished.fits
+#   siril-export -s 1.5 -q 90 image_finished.fits
+
+set -euo pipefail
+
+scale=2
+quality=95
+out_dir=""
+force=0
+inputs=()
+
+usage() { sed -n '2,/^$/s/^# \{0,1\}//p' "$0"; }
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -s|--scale)   scale="$2"; shift 2 ;;
+    -q|--quality) quality="$2"; shift 2 ;;
+    -o|--out-dir) out_dir="$2"; shift 2 ;;
+    -f|--force)   force=1; shift ;;
+    -h|--help)    usage; exit 0 ;;
+    -*)           echo "Unknown option: $1" >&2; usage >&2; exit 1 ;;
+    *)            inputs+=("$1"); shift ;;
+  esac
+done
+
+[[ ${#inputs[@]} -gt 0 ]] || { usage >&2; exit 1; }
+
+if [[ -n "${SIRIL_CLI:-}" ]]; then
+  read -r -a siril <<< "$SIRIL_CLI"
+elif command -v siril-cli >/dev/null 2>&1; then
+  siril=(siril-cli)
+elif command -v flatpak >/dev/null 2>&1; then
+  siril=(flatpak run --command=siril-cli org.siril.Siril)
+else
+  echo "siril-cli not found (neither on PATH nor as the org.siril.Siril flatpak)." >&2
+  exit 1
+fi
+
+# Siril scripts don't cope well with spaces in file names, so each input is
+# symlinked into a work folder under a simple name and the result renamed after.
+first_dir="$(cd "$(dirname "${inputs[0]}")" && pwd)"
+work="$(mktemp -d "${out_dir:-$first_dir}/.siril-export-XXXXXX")"
+trap 'rm -rf "$work"' EXIT
+
+script="$work/export.ssf"
+{
+  echo "requires 1.2.0"
+  echo "cd \"$work\""
+} > "$script"
+
+srcs=(); dests=(); names=()
+i=0
+for f in "${inputs[@]}"; do
+  [[ -f "$f" ]] || { echo "  skip (not found): $f" >&2; continue; }
+  src="$(cd "$(dirname "$f")" && pwd)/$(basename "$f")"
+  root="$(basename "$src")"; root="${root%.*}"
+  # ASIAIR names look like "2026-11-09-211008-Saturn-Bin1 56.8F_pss_rgb_finished":
+  # keep just "2026-11-09-211008-Saturn". Other names: drop anything from the first
+  # space, then a trailing "_finished".
+  if [[ "$root" =~ ^([0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{6}-[^-[:space:]]+) ]]; then
+    root="${BASH_REMATCH[1]}"
+  else
+    root="${root%% *}"; root="${root%_finished}"
+  fi
+  dest_dir="${out_dir:-$(dirname "$src")}"
+  dest="$dest_dir/$root.jpg"
+  if [[ -e "$dest" && $force -eq 0 ]]; then
+    echo "  skip (exists, use -f to overwrite): $dest"
+    continue
+  fi
+  i=$((i + 1))
+  name="$(printf 'img%02d' "$i")"
+  ln -s "$src" "$work/$name.${src##*.}"
+  {
+    echo "load $name"
+    echo "resample $scale"
+    echo "savejpg ${name}_out $quality"
+  } >> "$script"
+  srcs+=("$src"); dests+=("$dest"); names+=("$name")
+done
+
+[[ $i -gt 0 ]] || { echo "Nothing to do."; exit 0; }
+
+echo "Exporting $i image(s): resample $scale, JPEG quality $quality"
+"${siril[@]}" -d "$work" -s "$script" >"$work/siril.log" 2>&1 || {
+  echo "siril-cli failed; last lines of its log:" >&2
+  tail -n 20 "$work/siril.log" >&2
+  trap - EXIT
+  echo "Work folder kept: $work" >&2
+  exit 1
+}
+
+for n in "${!names[@]}"; do
+  out="$work/${names[$n]}_out.jpg"
+  if [[ -f "$out" ]]; then
+    mkdir -p "$(dirname "${dests[$n]}")"
+    mv -f "$out" "${dests[$n]}"
+    echo "  wrote ${dests[$n]}"
+  else
+    echo "  FAILED: ${srcs[$n]}" >&2
+  fi
+done

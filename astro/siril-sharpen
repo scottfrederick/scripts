@@ -1,0 +1,157 @@
+#!/usr/bin/env nix-shell
+#!nix-shell -i python3 -p "python3.withPackages (ps: [ ps.numpy ps.astropy ])"
+"""
+siril-sharpen: crop each planetary stack around the planet and apply Siril's
+Richardson-Lucy deconvolution with fixed settings, in one batch.
+
+For each input FITS (by default every *_pss_rgb.fits in the folder, i.e. pss-batch output):
+  1. find the planet and compute a crop box of fixed size centred on it
+  2. Siril: load -> crop -> makepsf (manual Gaussian) -> rl -> save
+Output: <input name without .fits>_sharpened.fits next to the input (or in --out-dir).
+
+Siril is run headless via siril-cli; the flatpak (org.siril.Siril) is used automatically
+if siril-cli is not on PATH.
+
+Defaults match the settings tuned on 2026-11-09 (FWHM 5.5, alpha 6000, 15 iterations,
+multiplicative method, Total Variation regularisation, 172x132 crop).
+
+Examples:
+  siril-sharpen ~/Astro/Saturn-processed/2026-11-09 --dry-run
+  siril-sharpen ~/Astro/Saturn-processed/2026-11-09
+  siril-sharpen DIR --only 211008,211220,212620 --fwhm 5 --iters 12
+"""
+
+import argparse
+import shutil
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+import numpy as np
+from astropy.io import fits
+
+
+def planet_crop(path: Path, width: int, height: int):
+    """Return (x, y, w, h) in Siril's crop coordinates (origin at the TOP-left of the
+    displayed image), centred on the planet's brightness-weighted centroid."""
+    data = fits.getdata(path).astype(np.float32)
+    lum = data.mean(axis=0) if data.ndim == 3 else data      # rows are FITS order (bottom-up)
+    img_h, img_w = lum.shape
+    mask = lum > lum.max() * 0.3
+    ys, xs = np.nonzero(mask)
+    weights = lum[mask]
+    cy = float((ys * weights).sum() / weights.sum())           # bottom-up row
+    cx = float((xs * weights).sum() / weights.sum())
+    w, h = min(width, img_w), min(height, img_h)
+    x0 = int(round(cx - w / 2))
+    r0 = int(round(cy - h / 2))                                # bottom-up first row of the box
+    x0 = max(0, min(x0, img_w - w))
+    r0 = max(0, min(r0, img_h - h))
+    y_top = img_h - (r0 + h)                                   # Siril measures y from the top
+    extent = (int(xs.max() - xs.min() + 1), int(ys.max() - ys.min() + 1))
+    return (x0, y_top, w, h), extent
+
+
+def find_siril(explicit: str | None) -> list:
+    if explicit:
+        return explicit.split()
+    if shutil.which("siril-cli"):
+        return ["siril-cli"]
+    if shutil.which("flatpak"):
+        return ["flatpak", "run", "--command=siril-cli", "org.siril.Siril"]
+    sys.exit("siril-cli not found (neither on PATH nor as the org.siril.Siril flatpak).")
+
+
+def main():
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument("folder", type=Path, help="folder with the stacked FITS files")
+    p.add_argument("--pattern", default="*_pss_rgb.fits",
+                   help="which files to process (default: %(default)s)")
+    p.add_argument("--only", default=None,
+                   help="comma-separated clip times to include, e.g. 211008,211220")
+    p.add_argument("--out-dir", type=Path, default=None, help="default: same folder")
+    p.add_argument("--crop", default="172x132", help="crop size WxH (default: %(default)s)")
+    p.add_argument("--fwhm", type=float, default=5.5, help="Gaussian PSF FWHM in px (default: %(default)s)")
+    p.add_argument("--alpha", type=float, default=6000, help="regularisation strength (default: %(default)s)")
+    p.add_argument("--iters", type=int, default=15, help="iterations (default: %(default)s)")
+    p.add_argument("--regularization", choices=["tv", "fh", "none"], default="tv",
+                   help="tv = Total Variation, fh = Frobenius/Hessian (default: %(default)s)")
+    p.add_argument("--gradient-descent", action="store_true",
+                   help="use gradient descent instead of the multiplicative method")
+    p.add_argument("--suffix", default="_sharpened", help="output suffix (default: %(default)s)")
+    p.add_argument("--siril", default=None, help="command to run siril-cli (default: auto)")
+    p.add_argument("--dry-run", action="store_true", help="show crops and the Siril script only")
+    p.add_argument("--overwrite", action="store_true", help="replace existing outputs")
+    args = p.parse_args()
+
+    folder = args.folder.expanduser().resolve()
+    out_dir = (args.out_dir or folder).expanduser().resolve()
+    cw, ch = (int(v) for v in args.crop.lower().split("x"))
+    only = {t.strip() for t in args.only.split(",")} if args.only else None
+
+    inputs = []
+    for f in sorted(folder.glob(args.pattern)):
+        if args.suffix in f.stem:
+            continue
+        if only and not any(t in f.name for t in only):
+            continue
+        out = out_dir / f"{f.stem}{args.suffix}.fits"
+        if out.exists() and not args.overwrite:
+            print(f"  skip (exists): {out.name}")
+            continue
+        inputs.append((f, out))
+    if not inputs:
+        print("Nothing to do.")
+        return
+
+    work = Path(tempfile.mkdtemp(prefix="siril-sharpen-", dir=out_dir if not args.dry_run else None))
+    reg = {"tv": " -tv", "fh": " -fh", "none": ""}[args.regularization]
+    method = "" if args.gradient_descent else " -mul"
+    lines = ["requires 1.2.4", "setext fits", f'cd "{work}"',
+             f"makepsf manual -gaussian -fwhm={args.fwhm}"]
+    print(f"Processing {len(inputs)} file(s) from {folder}")
+    print(f"  crop {cw}x{ch}, FWHM {args.fwhm}, alpha {args.alpha:g}, {args.iters} iterations, "
+          f"{'multiplicative' if not args.gradient_descent else 'gradient descent'}, "
+          f"regularisation {args.regularization}")
+    for i, (src, out) in enumerate(inputs, 1):
+        (x, y, w, h), extent = planet_crop(src, cw, ch)
+        name = f"img{i:02d}"
+        if not args.dry_run:
+            (work / f"{name}.fits").symlink_to(src)        # space-free names for Siril
+        lines += [f"load {name}", f"crop {x} {y} {w} {h}",
+                  f"rl -alpha={args.alpha:g} -iters={args.iters}{reg}{method}",
+                  f"save {name}_out"]
+        print(f"  {src.name}: planet {extent[0]}x{extent[1]} px, crop x={x} y={y} {w}x{h}")
+    script = "\n".join(lines) + "\n"
+
+    if args.dry_run:
+        print("\nSiril script:\n" + script)
+        return
+
+    ssf = work / "sharpen.ssf"
+    ssf.write_text(script)
+    cmd = find_siril(args.siril) + ["-d", str(work), "-s", str(ssf)]
+    print("\nRunning:", " ".join(cmd))
+    result = subprocess.run(cmd)
+
+    done = 0
+    for i, (src, out) in enumerate(inputs, 1):
+        produced = work / f"img{i:02d}_out.fits"
+        if produced.exists():
+            shutil.move(str(produced), out)
+            print(f"  wrote {out.name}")
+            done += 1
+        else:
+            print(f"  FAILED: {src.name}")
+    if done == len(inputs):
+        shutil.rmtree(work)
+    else:
+        print(f"Some files failed; Siril work folder kept for inspection: {work}")
+    if result.returncode != 0:
+        print(f"siril-cli exited with code {result.returncode}")
+
+
+if __name__ == "__main__":
+    main()
