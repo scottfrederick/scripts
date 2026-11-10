@@ -16,11 +16,24 @@ is_connected() {  # $1 = ip:port
     "$ADB" devices | grep -q "^$1[[:space:]]*device$"
 }
 
+# After connecting over IP:port, Wear also advertises the SAME watch as an mDNS
+# serial ("adb-XXXX..._adb-tls-connect._tcp"). That makes tools see "multiple
+# watches". Drop those mDNS-serial duplicates so only the IP:port serial remains.
+dedupe_mdns() {
+    "$ADB" devices | awk -F'\t' '/_adb-tls-connect\._tcp[[:space:]]+device/ {print $1}' \
+        | while IFS= read -r serial; do
+            [ -n "$serial" ] || continue
+            echo "  deduping mDNS duplicate: $serial"
+            "$ADB" disconnect "$serial" >/dev/null 2>&1 || true
+        done
+}
+
 # 1. Try the last-known address.
 if [ -f "$STATE" ]; then
     last=$(cat "$STATE")
     if is_connected "$last"; then
         echo "Watch already connected: $last"
+        dedupe_mdns
         exit 0
     fi
     # Clear any stale 'offline' entry for this address before retrying.
@@ -29,6 +42,7 @@ if [ -f "$STATE" ]; then
     if "$ADB" connect "$last" 2>/dev/null | grep -q "connected" && is_connected "$last"; then
         echo "$last" > "$STATE"
         echo "Connected: $last"
+        dedupe_mdns
         exit 0
     fi
     echo "  ...not reachable (port likely changed, or watch screen asleep)."
@@ -57,6 +71,7 @@ fi
 if is_connected "$conn_addr"; then
     echo "$conn_addr" > "$STATE"
     echo "Connected and saved: $conn_addr"
+    dedupe_mdns
 else
     echo "Connect reported success but device not 'device' state yet." >&2
     echo "$conn_addr" > "$STATE"   # save anyway; it may authorize on the watch
